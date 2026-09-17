@@ -9,7 +9,73 @@ execute:
 
 ```{r}
 #| message: false
-library(tidyverse)
+#| label: setup
 
-movies <- read_csv("movies.csv", show_col_types = FALSE)
+library(tidyverse)
+```
+
+```{r}
+movies <- read_csv("data/movies.csv", show_col_types = FALSE)
+
+glimpse(movies)
+names(movies)
+```
+
+```{r}
+if (ncol(movies) > 0) {
+  missing_by_column <- movies |>
+    summarise(across(everything(), ~ sum(is.na(.x)))) |>
+    pivot_longer(everything(), names_to = "column", values_to = "missing_values")
+} else {
+  missing_by_column <- tibble(column = character(), missing_values = integer())
+}
+
+missing_by_column
+```
+
+```{r}
+if (ncol(movies) > 0 && all(c("title", "boxOffice") %in% names(movies))) {
+  first_10_box_office <- movies |>
+    filter(!is.na(boxOffice)) |>
+    select(title, boxOffice) |>
+    slice_head(n = 10)
+} else {
+  first_10_box_office <- tibble(title = character(), boxOffice = numeric())
+}
+
+first_10_box_office
+```
+
+```{r}
+#| cache: true
+
+movies_clean <- movies |>
+  separate_rows(genre, sep = ", ")
+
+movies_clean
+```
+
+```{r}
+genre_counts <- movies_clean |>
+  count(genre, sort = TRUE)
+
+genre_counts
+```
+
+```{r}
+movies |>
+  summarise(
+    mean_audience_score = mean(audienceScore, na.rm = TRUE),
+    mean_tomato_meter = mean(tomatoMeter, na.rm = TRUE)
+  )
+```
+
+```{r}
+ggplot(movies, aes(x = tomatoMeter)) +
+  geom_histogram() +
+  labs(
+    x = "Tomatometer Score",
+    y = "Count",
+    title = "Distribution of Tomatometer Scores"
+  )
 ```
