@@ -22,26 +22,18 @@ names(movies)
 ```
 
 ```{r}
-if (ncol(movies) > 0) {
-  missing_by_column <- movies |>
-    summarise(across(everything(), ~ sum(is.na(.x)))) |>
-    pivot_longer(everything(), names_to = "column", values_to = "missing_values")
-} else {
-  missing_by_column <- tibble(column = character(), missing_values = integer())
-}
+missing_by_column <- movies |>
+  summarise(across(everything(), ~ sum(is.na(.x)))) |>
+  pivot_longer(everything(), names_to = "column", values_to = "missing_values")
 
 missing_by_column
 ```
 
 ```{r}
-if (ncol(movies) > 0 && all(c("title", "boxOffice") %in% names(movies))) {
-  first_10_box_office <- movies |>
-    filter(!is.na(boxOffice)) |>
-    select(title, boxOffice) |>
-    slice_head(n = 10)
-} else {
-  first_10_box_office <- tibble(title = character(), boxOffice = numeric())
-}
+first_10_box_office <- movies |>
+  filter(!is.na(boxOffice)) |>
+  select(title, boxOffice) |>
+  slice_head(n = 10)
 
 first_10_box_office
 ```
@@ -77,5 +69,65 @@ ggplot(movies, aes(x = tomatoMeter)) +
     x = "Tomatometer Score",
     y = "Count",
     title = "Distribution of Tomatometer Scores"
+  )
+```
+
+```{r}
+movies_gap <- movies |>
+  mutate(gap = tomatoMeter - audienceScore)
+
+movies_gap
+```
+
+```{r}
+gap_by_genre <- movies_clean |>
+  mutate(gap = tomatoMeter - audienceScore) |>
+  group_by(genre) |>
+  summarise(
+    mean_gap = mean(gap, na.rm = TRUE),
+    movie_count = n(),
+    .groups = "drop"
+  ) |>
+  filter(movie_count >= 50) |>
+  arrange(mean_gap)
+
+gap_by_genre
+```
+
+```{r}
+movies_gap |>
+  summarise(
+    mean_gap = mean(gap, na.rm = TRUE),
+    median_gap = median(gap, na.rm = TRUE),
+    sd_gap = sd(gap, na.rm = TRUE)
+  )
+```
+
+```{r}
+movies_summary <- movies_gap |>
+  group_by(genre) |>
+  summarise(
+    mean_gap = mean(gap, na.rm = TRUE),
+    movie_count = n(),
+    .groups = "drop"
+  ) |>
+  filter(movie_count >= 100) |>
+  arrange(mean_gap)
+
+movies_summary
+```
+
+```{r}
+ggplot(
+  movies_summary,
+  aes(x = mean_gap, y = fct_reorder(genre, mean_gap))
+) +
+  geom_col() +
+  geom_vline(xintercept = 0) +
+  labs(
+    x = "Average Gap",
+    y = "Genre",
+    title = "Average Critic-Audience Gap by Genre",
+    subtitle = "Negative gaps favor audiences; positive gaps favor critics"
   )
 ```
